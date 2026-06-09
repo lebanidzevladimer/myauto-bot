@@ -14,6 +14,15 @@ SEARCHES = [
         "interval": 3600,
         "max_price": None,
         "max_mileage": None
+    },
+    {
+        "name": "Kia Niro",
+        "mans": "55.1695",
+        "year_from": 2018,
+        "year_to": 2022,
+        "interval": 1800,
+        "max_price": None,
+        "max_mileage": None
     }
 ]
 
