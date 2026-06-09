@@ -1,5 +1,5 @@
 import requests, json, os, time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 TELEGRAM_TOKEN = "8911039466:AAH1QQfAtBolwTRamovsK_D5DM1ngpEE98s"
 CHAT_ID = "5885495534"
@@ -61,12 +61,32 @@ def fetch_cars(search):
         r = requests.get("https://api2.myauto.ge/ka/products",
                          params=params, headers=HEADERS, timeout=15)
         items = r.json().get("data", {}).get("items", [])
+        # ფასის ფილტრი
         if search["max_price"]:
             items = [i for i in items if (i.get("price_usd") or 0) <= search["max_price"]]
+        # გარბენის ფილტრი
         if search["max_mileage"]:
             items = [i for i in items if (i.get("car_run_km") or 0) <= search["max_mileage"]]
-        return items
-    except: return []
+        # ბოლო 1 საათის ფილტრი
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
+        filtered = []
+        for i in items:
+            add_date = i.get("add_date") or i.get("order_date", "")
+            if add_date:
+                try:
+                    dt = datetime.fromisoformat(add_date.replace("Z", "+00:00"))
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    if dt >= cutoff:
+                        filtered.append(i)
+                except:
+                    filtered.append(i)
+            else:
+                filtered.append(i)
+        return filtered
+    except Exception as e:
+        print(f"შეცდომა: {e}")
+        return []
 
 def format_msg(car, search_name):
     cid = car.get("car_id", "")
@@ -74,11 +94,19 @@ def format_msg(car, search_name):
     cur = "$" if car.get("price_usd") else "₾"
     fuel = {1:"⛽ ბენზინი",2:"🛢 დიზელი",3:"🔋 ჰიბრიდი",4:"⚡ ელექტრო"}.get(car.get("fuel_type_id"),"")
     gear = {1:"მექანიკა",2:"ავტომატი",3:"ტიპტრონიკი",4:"ვარიატორი"}.get(car.get("gear_type_id"),"")
-    return f"""🚗 <b>{search_name} {car.get('prod_year')} — ახალი!</b>
+    add_date = car.get("add_date") or car.get("order_date","")
+    try:
+        dt = datetime.fromisoformat(add_date.replace("Z","+00:00"))
+        tbilisi = dt + timedelta(hours=4)
+        time_str = tbilisi.strftime("%d.%m.%Y %H:%M")
+    except:
+        time_str = ""
+    return f"""🚗 <b>{search_name} {car.get('prod_year')} — ახალი განცხადება!</b>
 
 💰 {int(price):,} {cur}
 🛣 {car.get('car_run_km',0):,} კმ
 🔧 {car.get('engine_volume','')}ლ {fuel} | {gear}
+🕐 დამატდა: {time_str}
 
 🔗 <a href="https://www.myauto.ge/ka/pr/{cid}">ნახვა →</a>"""
 
