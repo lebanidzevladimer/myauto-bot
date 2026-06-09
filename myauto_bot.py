@@ -23,6 +23,15 @@ SEARCHES = [
         "interval": 1800,
         "max_price": None,
         "max_mileage": None
+    },
+    {
+        "name": "BMW 3 Series",
+        "mans": "2.18",
+        "year_from": 2018,
+        "year_to": 2022,
+        "interval": 1800,
+        "max_price": None,
+        "max_mileage": None
     }
 ]
 
